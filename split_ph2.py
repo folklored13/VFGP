@@ -52,6 +52,12 @@ def load_images_from_folders(image_folder, metadata_path):
         except Exception as e:
             print(f"错误处理 {image_path}: {str(e)}")
 
+    print(
+        f"特征维度-- LBP-Gray: {len(lgray_feat)}, "
+        f"LBP-RGB: {len(lrgb_feat)}, "
+        f"小波: {len(wavelet_feat)}, "
+        f"合并后: {len(merged_feature)}"
+    )
     return np.array(combined_features), np.array(labels)
 
 def balance_dataset(x_data, y_data):
@@ -108,6 +114,27 @@ if __name__ == "__main__":
     np.save(os.path.join(output_dir, "test_features.npy"), x_test)
     np.save(os.path.join(output_dir, "train_labels.npy"), y_train)
     np.save(os.path.join(output_dir, "test_labels.npy"), y_test)
+
+
+    # 输出数据集属性
+    prop_path = os.path.join(output_dir, 'ph2_properties.txt')
+    with open(prop_path, 'w') as f:
+        f.write(f"训练集形状: {x_train.shape}\n")
+        f.write(f"测试集形状: {x_test.shape}\n\n")
+
+        # 训练集类别分布
+        train_unique, train_counts = np.unique(y_train, return_counts=True)
+        f.write("训练集类别分布:\n")
+        for cls, count in zip(train_unique, train_counts):
+            f.write(f"  类别 {cls}: {count} 样本\n")
+
+        # 测试集类别分布
+        test_unique, test_counts = np.unique(y_test, return_counts=True)
+        f.write("\n测试集类别分布:\n")
+        for cls, count in zip(test_unique, test_counts):
+            f.write(f"  类别 {cls}: {count} 样本\n")
+
+    print(f"属性保存至：{prop_path}")
 
     print(f"训练集: {x_train.shape}, 测试集: {x_test.shape}")
     print(f"类别分布 - 训练集: {np.unique(y_train, return_counts=True)}")
