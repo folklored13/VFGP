@@ -9,7 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.metrics import accuracy_score, f1_score
 
 
@@ -58,8 +58,8 @@ pset.addPrimitive(lambda x: [np.cos(x[i]) for i in range(len(x))], [FeatureVecto
 pset.addPrimitive(fe_fs.conditional_op, [FeatureVector, FeatureVector, FeatureVector, FeatureVector], FeatureVector, name="if")
 pset.addPrimitive(lambda x: np.mean(x), [FeatureVector], Float, name="mean")
 
-# 添加特征提取终端节点
-for i in range(588):
+# 添加特征提取终端节点 588->652
+for i in range(652):
     pset.addTerminal(get_feature(i), Float, name=f"F{i}")
 
 # 个体
@@ -92,8 +92,23 @@ def evalVFGP(individual):
         clf3 = RandomForestClassifier(n_estimators=100, random_state=42)
         eclf = VotingClassifier(estimators=[('svm', clf1), ('j48', clf2), ('rf', clf3)], voting='soft')
 
-        f1_scores = cross_val_score(eclf, X_transformed, y_train, cv=10, scoring='f1_macro')
+        skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+        f1_scores = []
+        for train_idx, val_idx in skf.split(X_transformed, y_train):
+            # 分割数据
+            X_train_fold, X_val_fold = X_transformed[train_idx], X_transformed[val_idx]
+            y_train_fold, y_val_fold = y_train[train_idx], y_train[val_idx]
+
+            # 训练并预测
+            eclf.fit(X_train_fold, y_train_fold)
+            y_pred = eclf.predict(X_val_fold)
+
+            # 计算每个类别的F1后取平均
+            f1_per_class = f1_score(y_val_fold, y_pred, average=None)
+            f1_scores.append(np.mean(f1_per_class))
+
         avg_f1 = np.mean(f1_scores) * 100
+
     except Exception as e:
         print(f"Error in evalVFGP: {e}")
         avg_f1 = 0
