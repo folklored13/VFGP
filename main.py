@@ -26,10 +26,10 @@ y_train = np.load(os.path.join(data_path, "train_labels.npy"))
 x_test = np.load(os.path.join(data_path, "test_features.npy"))
 y_test = np.load(os.path.join(data_path, "test_labels.npy"))
 
-print(x_train.shape)
-print(y_train.shape)
-print(x_train)
-print(y_train)
+# print(x_train.shape)
+# print(y_train.shape)
+# print(x_train)
+# print(y_train)
 
 scaler = MinMaxScaler()
 x_train = scaler.fit_transform(x_train)
@@ -55,12 +55,14 @@ pset.addPrimitive(lambda x, y: [x[i] * y[i] for i in range(len(x))], [FeatureVec
 pset.addPrimitive(protectedDiv, [FeatureVector, FeatureVector], FeatureVector, name="div")
 pset.addPrimitive(lambda x: [np.sin(x[i]) for i in range(len(x))], [FeatureVector], FeatureVector, name="sin")
 pset.addPrimitive(lambda x: [np.cos(x[i]) for i in range(len(x))], [FeatureVector], FeatureVector, name="cos")
-pset.addPrimitive(fe_fs.conditional_op, [FeatureVector, FeatureVector, FeatureVector, FeatureVector], FeatureVector, name="if")
+pset.addPrimitive(fe_fs.conditional_op, [FeatureVector, FeatureVector, FeatureVector, FeatureVector], FeatureVector, name="If")
 pset.addPrimitive(lambda x: np.mean(x), [FeatureVector], Float, name="mean")
 
-# 添加特征提取终端节点 588->652
+# 添加特征提取终端节点
 for i in range(652):
-    pset.addTerminal(get_feature(i), Float, name=f"F{i}")
+    #pset.addTerminal(get_feature(i), Float, name=f"F{i}")
+    pset.addTerminal(get_feature(i), list, name=f"F{i}")
+
 
 # 个体
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -85,7 +87,7 @@ def evalVFGP(individual):
                 result = result(sample.tolist())
             X_transformed.append(float(result))
         X_transformed = np.array(X_transformed).reshape(-1, 1)
-        print(f"X_transformed shape: {X_transformed.shape}, first few values: {X_transformed[:5]}")
+        # print(f"X_transformed shape: {X_transformed.shape}, first few values: {X_transformed[:5]}")
 
         clf1 = SVC(kernel='rbf', probability=True, random_state=42)
         clf2 = DecisionTreeClassifier(criterion='entropy', random_state=42)
