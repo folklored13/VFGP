@@ -83,10 +83,10 @@ def evalVFGP(individual, x_data, y_data):
     try:
         # 1
         func = toolbox.compile(expr=individual)
-
+        print(f'individual:{individual}')
         # 2. 获取个体实际使用的索引 (通过解析字符串)
         tree_str = str(individual)
-        # 使用正则表达式查找所有出现的 "Fi" 模式，提取数字 i
+        # 使用正则表达式查找所有出现的 "Fi"，提取出数字 i
         # (\d+) 匹配一个或多个数字，并捕获它
         used_feature_indices_str = re.findall(r'F(\d+)', tree_str)
         # 转换为整数并去重
@@ -202,8 +202,8 @@ toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
 toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset=pset)
 
 
-toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
-toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
+# toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
+# toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
 
 def transform_data(x_original, individual, compiled_func):
     """转换数据：提取选择的特征并计算构造特征"""
