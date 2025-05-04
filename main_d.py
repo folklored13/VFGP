@@ -278,43 +278,52 @@ if __name__ == "__main__":
 
     # 4. 训练最终的模型
 
-    final_models = {
+    final_models_config = {
         'svm': SVC(kernel='rbf', probability=True, random_state=42, C=1.0, gamma='scale'),
         'j48': DecisionTreeClassifier(criterion='entropy', random_state=42, max_depth=5),
-        'rf': RandomForestClassifier(n_estimators=10, random_state=42, max_depth=5)
+        'rf': RandomForestClassifier(n_estimators=10, random_state=42, max_depth=5, n_jobs=-1)  # 使用 n_jobs 加速
     }
-    best_model_name = None
-    best_train_f1 = -1.0
+    trained_final_models = {}  # 用于存储训练好的模型
 
-    print("\n在转换后的训练集上训练最终模型...")
-    for name, model in final_models.items():
+    print("\n在转换后的完整训练集上训练所有最终模型...")
+    for name, model in final_models_config.items():
+        print(f"训练模型: {name}...")
+        model.fit(X_train_transformed, y_train)
+        trained_final_models[name] = model  # 保存训练好的模型实例
 
-         model.fit(X_train_transformed, y_train)
-         y_train_pred = model.predict(X_train_transformed)
-         train_f1 = f1_score(y_train, y_train_pred, average='macro', zero_division=0)
-         print(f"模型 {name} - 训练集 Macro F1: {train_f1:.4f}")
-         if train_f1 > best_train_f1:
-             best_train_f1 = train_f1
-             best_model_name = name
+        y_train_pred = model.predict(X_train_transformed)
+        train_f1 = f1_score(y_train, y_train_pred, average='macro', zero_division=0)
+        print(f"  模型 {name} - 训练集 Macro F1: {train_f1:.4f}")
 
-    print(f"\n选择最佳模型 '{best_model_name}' 进行测试。")
-    final_classifier = final_models[best_model_name]
-
-    # 5. 在转换后的测试集上评估
-    y_test_pred = final_classifier.predict(X_test_transformed)
-
-    test_accuracy = accuracy_score(y_test, y_test_pred)
-    test_f1_macro = f1_score(y_test, y_test_pred, average='macro', zero_division=0)
+    # 5. 在转换后的测试集上分别评估每个训练好的模型
+    print("\n=== 对每个模型进行最终测试评估 ===")
 
 
-    print("\n=== 最终测试结果 ===")
-    print(f"测试集准确率: {test_accuracy:.4f}")
-    print(f"测试集 Macro F1 分数: {test_f1_macro:.4f}")
+    from sklearn.metrics import classification_report, accuracy_score, f1_score
 
 
-    from sklearn.metrics import classification_report
-    print("\n测试集分类报告:")
-    print(classification_report(y_test, y_test_pred, zero_division=0))
+    # class_names = ['Nevus', 'Melanoma', 'SK']
+
+    unique_labels = np.unique(y_test)
+    class_names = [f'Class {label}' for label in sorted(unique_labels)]
+
+    for name, trained_model in trained_final_models.items():
+        print(f"\n--- 测试模型: {name} ---")
+
+        # 使用当前模型进行预测
+        y_test_pred = trained_model.predict(X_test_transformed)
+
+        # 计算并打印该模型的测试指标
+        test_accuracy = accuracy_score(y_test, y_test_pred)
+        test_f1_macro = f1_score(y_test, y_test_pred, average='macro', zero_division=0)
+
+        print(f"测试集准确率 (Accuracy): {test_accuracy:.4f}")
+        print(f"测试集 Macro F1 分数: {test_f1_macro:.4f}")
+
+
+        print("\n测试集分类报告:")
+        print(classification_report(y_test, y_test_pred, target_names=class_names, zero_division=0))
+        print("-" * 30)  
 
     end_time = time.time()
     total_time = end_time - start_time
