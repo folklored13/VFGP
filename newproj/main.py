@@ -23,7 +23,7 @@ def Div(left, right):
 
 def sin(x): return np.sin(float(x))
 def cos(x): return np.cos(float(x))
-def if_then_else(a, b, c, d): return c if a < b else d
+def If(a, b, c, d): return c if a < b else d
 
 # --- evalVFGP (修改为直接评估，无内部CV) ---
 def evalVFGP(individual, x_train_fold, y_train_fold, toolbox): # 传入 toolbox
@@ -111,7 +111,7 @@ def evalVFGP(individual, x_train_fold, y_train_fold, toolbox): # 传入 toolbox
         # traceback.print_exc()
         return (0.0,)
 
-# --- transform_data (保持类似) ---
+
 def transform_data(x_original, individual, compiled_func):
     tree_str = str(individual)
     used_feature_indices_str = re.findall(r'F(\d+)', tree_str)
@@ -131,7 +131,7 @@ def transform_data(x_original, individual, compiled_func):
              return constructed # 只返回构造特征
         else:
              # print("Error: No selected features and constructed feature shape mismatch.")
-             # 返回一个占位符或引发错误，这里返回一个全零数组
+             #返回一个全零数组
              return np.zeros((x_original.shape[0], 1))
 
     else:
@@ -176,13 +176,12 @@ def main(feature_type, n_features, data_dir, num_jobs=5, n_splits=10):
     pset.addPrimitive(Div, 2)
     pset.addPrimitive(sin, 1)
     pset.addPrimitive(cos, 1)
-    pset.addPrimitive(if_then_else, 4)
+    pset.addPrimitive(If, 4)
     pset.renameArguments(**{f"ARG{i}": f"F{i}" for i in range(n_features)})
 
-    # Fitness (Maximize F1 score)
-    # 如果需要存储 Max Index，需要创建自定义 Fitness 类
+
     # creator.create("FitnessMax", base.Fitness, weights=(1.0,), best_model_index=None)
-    creator.create("FitnessMax", base.Fitness, weights=(1.0,)) # 简化版
+    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMax, pset=pset)
 
     toolbox = base.Toolbox()
@@ -190,23 +189,23 @@ def main(feature_type, n_features, data_dir, num_jobs=5, n_splits=10):
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("compile", gp.compile, pset=pset)
-    # 适应度函数注册放到 CV 循环内部，因为它依赖 fold 数据
+
 
     toolbox.register("select", tools.selTournament, tournsize=7)
     toolbox.register("mate", gp.cxOnePoint)
     toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
     toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset=pset)
-    toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
-    toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
+    # toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
+    # toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
 
     # --- GP Parameters ---
     population_size = 100
     generations = 50
     cx_prob = 0.80
     mut_prob = 0.19
-    # Elitism (如果需要，使用 eaMuPlusLambda 或手动实现)
-    mu = population_size # For eaMuPlusLambda
-    lambda_ = population_size # For eaMuPlusLambda
+
+    mu = population_size
+    lambda_ = population_size
 
     # --- CV and Job Loop ---
     all_job_train_f1s = []
@@ -288,13 +287,13 @@ def main(feature_type, n_features, data_dir, num_jobs=5, n_splits=10):
             for i, (name, model) in enumerate(models_config.items()):
                 current_X_train = X_train_transformed_fold
                 if current_X_train.ndim == 1: current_X_train = current_X_train.reshape(-1, 1)
-                if len(np.unique(y_train_fold)) < 2: continue # Skip if not enough classes
+                if len(np.unique(y_train_fold)) < 2: continue
 
                 model.fit(current_X_train, y_train_fold)
                 trained_models_fold[name] = model
                 y_train_pred_fold = model.predict(current_X_train)
                 f1_train = f1_score(y_train_fold, y_train_pred_fold, average='macro', zero_division=0)
-                train_f1_scores_fold[name] = f1_train * 100 # Match ECJ % scale
+                train_f1_scores_fold[name] = f1_train * 100
                 if f1_train > best_train_f1_fold:
                     best_train_f1_fold = f1_train
                     best_classifier_name_fold = name
@@ -324,7 +323,7 @@ def main(feature_type, n_features, data_dir, num_jobs=5, n_splits=10):
                  try:
                      y_test_pred_fold = model.predict(current_X_test)
                      f1_test = f1_score(y_test_fold, y_test_pred_fold, average='macro', zero_division=0)
-                     test_f1_scores_fold[name] = f1_test * 100 # Match ECJ % scale
+                     test_f1_scores_fold[name] = f1_test * 100
                      if name == best_classifier_name_fold:
                          tester_model = model # Keep track of the selected one
                  except Exception as e_test:
