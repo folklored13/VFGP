@@ -74,7 +74,7 @@ def run_ecj_like_experiment_from_runs(feature_type, n_features, base_runs_dir, n
             # Run GP Evolution
             pop = toolbox.population(n=config.POPULATION_SIZE)
             hof = tools.HallOfFame(1)
-            # 为当前 GP 运行设置随机种子 (如果 DEAP 支持或需要更细致控制)
+            # 为当前 GP 运行设置随机种子
             # random.seed(current_job_seed * 100 + run_idx) # 示例种子
             # np.random.seed(current_job_seed * 100 + run_idx)
 
